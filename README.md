@@ -6,7 +6,7 @@ Born as a replacement for a discontinued upstream ([hanxi/xiaomusic](https://git
 
 ## What it does
 
-- Morning brief: weekdays 07:38 set volume → play `morning_brief.mp3` → 07:50 stop
+- Morning brief: weekdays 07:58 set volume → play `morning_brief.mp3` → 08:10 stop
 - Ad-hoc: list devices, push any audio URL/file, short TTS, status
 
 ## Architecture
