@@ -21,3 +21,13 @@ fi
 
 echo "=== $(date '+%F %T') morning stop (did=$XIAOAI_DID) ==="
 "$VENV_PYTHON" -m xiaoai_broadcast stop --did "$XIAOAI_DID"
+
+# Restore pre-play volume if morning_play.sh saved it
+VOLUME_FILE="$TOOL_HOME/pre_play_volume"
+if [[ -s "$VOLUME_FILE" ]]; then
+  RESTORE_VOL="$(cat "$VOLUME_FILE")"
+  if "$VENV_PYTHON" -m xiaoai_broadcast volume --did "$XIAOAI_DID" "$RESTORE_VOL"; then
+    echo "volume restored to $RESTORE_VOL"
+  fi
+  rm -f "$VOLUME_FILE"
+fi

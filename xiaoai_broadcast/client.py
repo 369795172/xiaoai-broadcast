@@ -131,6 +131,16 @@ def volume(device_id: str, level: int) -> Any:
     return asyncio.run(_call("player_set_volume", (device_id, level), 2))
 
 
+def get_volume(device_id: str) -> int:
+    """Current playback volume via player_get_status (data.info JSON)."""
+    import json as _json
+
+    resp = asyncio.run(_call("player_get_status", (device_id,), 2))
+    info = ((resp or {}).get("data") or {}).get("info") or "{}"
+    parsed = _json.loads(info) if isinstance(info, str) else info
+    return int(parsed.get("volume", 0))
+
+
 def play_url(device_id: str, url: str, retry: int = 3) -> Any:
     return asyncio.run(_call("play_by_url", (device_id, url), retry))
 

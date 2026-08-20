@@ -39,9 +39,9 @@ def main(argv: list[str] | None = None) -> int:
         help="seed auth from browser cookies (MFA-safe, interactive)",
     )
 
-    p_vol = sub.add_parser("volume", help="set volume")
+    p_vol = sub.add_parser("volume", help="get or set volume")
     p_vol.add_argument("--did", required=True)
-    p_vol.add_argument("level", type=int)
+    p_vol.add_argument("level", type=int, nargs="?", help="omit to print current")
 
     p_play = sub.add_parser("play", help="play a file or URL on a speaker")
     p_play.add_argument("--did", required=True)
@@ -102,8 +102,11 @@ def main(argv: list[str] | None = None) -> int:
     device = client.resolve_device(args.did)
 
     if args.cmd == "volume":
-        client.volume(device["device_id"], args.level)
-        print(f"volume -> {args.level} on {device['name']}")
+        if args.level is None:
+            print(client.get_volume(device["device_id"]))
+        else:
+            client.volume(device["device_id"], args.level)
+            print(f"volume -> {args.level} on {device['name']}")
     elif args.cmd == "play":
         if bool(args.file) == bool(args.url):
             print("specify exactly one of --file / --url", file=sys.stderr)

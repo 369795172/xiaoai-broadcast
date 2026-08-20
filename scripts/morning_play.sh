@@ -34,8 +34,16 @@ if [[ "$dow" -gt 5 ]]; then
   exit 0
 fi
 
-VOLUME="${XIAOAI_MORNING_VOLUME:-40}"
+VOLUME="${XIAOAI_MORNING_VOLUME:-50}"
+VOLUME_FILE="$TOOL_HOME/pre_play_volume"
 
 echo "=== $(date '+%F %T') morning play start (did=$XIAOAI_DID vol=$VOLUME) ==="
+# Save pre-play volume for restoration by morning_stop.sh
+if "$VENV_PYTHON" -m xiaoai_broadcast volume --did "$XIAOAI_DID" > "$VOLUME_FILE" 2>/dev/null; then
+  echo "pre-play volume saved: $(cat "$VOLUME_FILE")"
+else
+  rm -f "$VOLUME_FILE"
+  echo "warn: could not read current volume; restore will be skipped"
+fi
 "$VENV_PYTHON" -m xiaoai_broadcast play \
   --did "$XIAOAI_DID" --file morning_brief.mp3 --volume "$VOLUME" --retry 3
