@@ -22,8 +22,11 @@ fi
 
 : "${XIAOAI_DID:?XIAOAI_DID not set (put it in $TOOL_HOME/env)}"
 : "${XIAOAI_BASE_URL:?XIAOAI_BASE_URL not set (e.g. http://192.168.1.124:8091)}"
-: "${XIAOAI_USER:?XIAOAI_USER not set (Keychain or $TOOL_HOME/env)}"
-: "${XIAOMI_PASSWORD:?XIAOMI_PASSWORD not set (Keychain or $TOOL_HOME/env)}"
+# Auth: passToken file (login-cookie) OR env creds -- at least one must exist.
+if [[ ! -f "$TOOL_HOME/mi_token.json" ]] && [[ -z "${XIAOAI_USER:-}${MI_USER:-}" ]]; then
+  echo "no auth: run 'xiaoai-broadcast login-cookie' (or set XIAOMI_USER/XIAOMI_PASSWORD)" >&2
+  exit 1
+fi
 
 dow="$(date +%u)"
 if [[ "$dow" -gt 5 ]]; then

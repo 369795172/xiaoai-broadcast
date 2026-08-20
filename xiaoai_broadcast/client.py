@@ -1,19 +1,26 @@
 """Async MiNA cloud client wrapper around miservice_fork.
 
-Credential contract (first match wins):
-    MI_USER / MI_PASS                    -- miservice convention
-    XIAOMI_USER / XIAOMI_PASSWORD        -- rootgrove Keychain protocol
+Two credential paths (MFA-safe):
 
-Device id contract:
-    device_list() items carry both `deviceID` (MiNA calls want this) and
-    `miotDID` (what xiaomusic calls "did"). Our --did accepts either.
+1. passToken bootstrap (recommended for MFA-enabled accounts):
+   `xiaoai-broadcast login-cookie` seeds ~/.xiaoai-broadcast/mi_token.json
+   with {deviceId, userId, passToken} taken from a logged-in browser.
+   miservice then authenticates via cookie -- no password, no SMS.
 
-Token cache: ~/.xiaoai-broadcast/mi_token.json (auto-managed by MiAccount).
+2. Password env fallback (accounts without MFA):
+   MI_USER / MI_PASS  or  XIAOMI_USER / XIAOMI_PASSWORD.
+
+Token cache: ~/.xiaoai-broadcast/mi_token.json (0600, auto-managed).
 """
 from __future__ import annotations
 
 import asyncio
+import getpass
+import json
 import os
+import stat
+import string
+import secrets
 from pathlib import Path
 from typing import Any
 
@@ -24,17 +31,57 @@ _HOME = Path.home() / ".xiaoai-broadcast"
 _TOKEN_PATH = _HOME / "mi_token.json"
 
 
-def _credential(env_a: str, env_b: str) -> str:
-    value = os.environ.get(env_a) or os.environ.get(env_b) or ""
-    if not value:
-        raise SystemExit(f"missing credential: export {env_a} (or {env_b})")
-    return value
+def _load_token() -> dict[str, Any]:
+    try:
+        data = json.loads(_TOKEN_PATH.read_text())
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def _save_token(token: dict[str, Any]) -> None:
+    _HOME.mkdir(parents=True, exist_ok=True)
+    _TOKEN_PATH.write_text(json.dumps(token, indent=2))
+    _TOKEN_PATH.chmod(stat.S_IRUSR | stat.S_IWUSR)
+
+
+def has_pass_token() -> bool:
+    token = _load_token()
+    return bool(token.get("passToken") and token.get("userId"))
+
+
+def bootstrap_cookie_login() -> dict[str, Any]:
+    """Interactively seed the token file from a logged-in browser session.
+
+    Get the values from DevTools -> Application -> Cookies -> account.xiaomi.com:
+      userId, passToken. Input here is hidden; nothing is printed or logged.
+    """
+    user_id = input("userId (from cookie of account.xiaomi.com): ").strip()
+    pass_token = getpass.getpass("passToken (hidden input): ").strip()
+    if not user_id or not pass_token:
+        raise SystemExit("both userId and passToken are required")
+    device_id = "".join(
+        secrets.choice(string.ascii_uppercase + string.digits) for _ in range(16)
+    )
+    token = {"deviceId": device_id, "userId": user_id, "passToken": pass_token}
+    _save_token(token)
+    return token
+
+
+def _env(name: str) -> str:
+    return os.environ.get(name, "")
 
 
 async def _call(command: str, args: tuple[Any, ...], retry: int) -> Any:
     _HOME.mkdir(parents=True, exist_ok=True)
-    user = _credential("MI_USER", "XIAOMI_USER")
-    password = _credential("MI_PASS", "XIAOMI_PASSWORD")
+    token = _load_token()
+    user = _env("MI_USER") or _env("XIAOMI_USER") or str(token.get("userId", ""))
+    password = _env("MI_PASS") or _env("XIAOMI_PASSWORD")
+    if not user:
+        raise SystemExit(
+            "no credentials: run `xiaoai-broadcast login-cookie` "
+            "(MFA accounts) or export MI_USER/MI_PASS"
+        )
     session = aiohttp.ClientSession()
     try:
         account = MiAccount(session, user, password, str(_TOKEN_PATH))

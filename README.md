@@ -31,11 +31,28 @@ cd xiaoai-broadcast && scripts/install.sh
 Configure `~/.xiaoai-broadcast/env`:
 
 ```bash
-XIAOAI_USER=...          # or rely on rootgrove Keychain loader
-XIAOMI_PASSWORD=...      # never commit this file
 XIAOAI_BASE_URL=http://<mac-lan-ip>:8091
 XIAOAI_DID=...           # from: xiaoai-broadcast devices
 ```
+
+## Auth
+
+**MFA-enabled Xiaomi accounts (recommended path)** — cookie bootstrap, no
+password ever needed:
+
+1. Login https://account.xiaomi.com in your browser (SMS code is fine)
+2. DevTools → Application → Cookies → `account.xiaomi.com` → copy `userId` and `passToken`
+3. Run:
+
+```bash
+xiaoai-broadcast login-cookie    # hidden prompts; validates by listing devices
+```
+
+The seeded `~/.xiaoai-broadcast/mi_token.json` (0600) authenticates via
+passToken cookie. If Xiaomi revokes it someday, repeat the three steps.
+
+**Non-MFA accounts** — plain env creds also work:
+`MI_USER`/`MI_PASS` or `XIAOMI_USER`/`XIAOMI_PASSWORD` (rootgrove Keychain loader).
 
 Then:
 

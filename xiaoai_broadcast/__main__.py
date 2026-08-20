@@ -34,6 +34,10 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("devices", help="list speakers (did + device_id)")
+    sub.add_parser(
+        "login-cookie",
+        help="seed auth from browser cookies (MFA-safe, interactive)",
+    )
 
     p_vol = sub.add_parser("volume", help="set volume")
     p_vol.add_argument("--did", required=True)
@@ -66,6 +70,21 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "serve":
         server.serve(args.dir, args.port)
+        return 0
+
+    if args.cmd == "login-cookie":
+        token = client.bootstrap_cookie_login()
+        print(
+            f"token seeded: userId={token['userId']} "
+            f"(device {token['deviceId']}, file 0600)"
+        )
+        rows = client.list_devices()
+        print(f"login OK, {len(rows)} device(s):")
+        for r in rows:
+            print(
+                f"  {r['name']:<20} {r['hardware']:<8} "
+                f"did={r['did']} device_id={r['device_id']}"
+            )
         return 0
 
     if args.cmd == "devices":
