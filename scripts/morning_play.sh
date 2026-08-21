@@ -11,14 +11,9 @@ VENV_PYTHON="$TOOL_HOME/venv/bin/python"
 
 # Credentials: prefer rootgrove Keychain loader, fall back to local env file.
 ROOTGROVE_ENV="$HOME/CursorWorks/rootgrove/tools/secrets/source_env.sh"
-if [[ -f "$ROOTGROVE_ENV" ]]; then
-  # shellcheck source=/dev/null
-  source "$ROOTGROVE_ENV"
-fi
-if [[ -f "$TOOL_HOME/env" ]]; then
-  # shellcheck source=/dev/null
-  source "$TOOL_HOME/env"
-fi
+[[ -f "$ROOTGROVE_ENV" ]] && source "$ROOTGROVE_ENV"
+[[ -f "$TOOL_HOME/env" ]] && source "$TOOL_HOME/env"
+export XIAOAI_DID XIAOAI_BASE_URL XIAOAI_MORNING_VOLUME
 
 : "${XIAOAI_DID:?XIAOAI_DID not set (put it in $TOOL_HOME/env)}"
 : "${XIAOAI_BASE_URL:?XIAOAI_BASE_URL not set (e.g. http://192.168.1.124:8091)}"

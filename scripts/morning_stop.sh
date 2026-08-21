@@ -8,14 +8,9 @@ TOOL_HOME="$HOME/.xiaoai-broadcast"
 VENV_PYTHON="$TOOL_HOME/venv/bin/python"
 
 ROOTGROVE_ENV="$HOME/CursorWorks/rootgrove/tools/secrets/source_env.sh"
-if [[ -f "$ROOTGROVE_ENV" ]]; then
-  # shellcheck source=/dev/null
-  source "$ROOTGROVE_ENV"
-fi
-if [[ -f "$TOOL_HOME/env" ]]; then
-  # shellcheck source=/dev/null
-  source "$TOOL_HOME/env"
-fi
+[[ -f "$ROOTGROVE_ENV" ]] && source "$ROOTGROVE_ENV"
+[[ -f "$TOOL_HOME/env" ]] && source "$TOOL_HOME/env"
+export XIAOAI_DID XIAOAI_BASE_URL
 
 : "${XIAOAI_DID:?XIAOAI_DID not set}"
 
