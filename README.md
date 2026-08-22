@@ -37,7 +37,20 @@ XIAOAI_DID=...           # from: xiaoai-broadcast devices
 
 ## Auth
 
-**MFA-enabled Xiaomi accounts (recommended path)** — cookie bootstrap, no
+**Agent path (self-healing, no DevTools)** — `login-browser` keeps a
+dedicated Playwright profile and harvests `userId`/`passToken` into
+`~/.xiaoai-broadcast/mi_token.json`:
+
+```bash
+xiaoai-broadcast login-browser                        # headless harvest (profile session alive)
+xiaoai-broadcast login-browser --account <phone> --sms
+# then write the received SMS code into ~/.xiaoai-broadcast/sms_code.txt
+```
+
+The web session in the profile typically stays alive for months; while it
+does, re-harvesting is fully headless and remote.
+
+**MFA-enabled Xiaomi accounts (manual fallback)** — cookie bootstrap, no
 password ever needed:
 
 1. Login https://account.xiaomi.com in your browser (SMS code is fine)
@@ -51,8 +64,9 @@ xiaoai-broadcast login-cookie    # hidden prompts; validates by listing devices
 The seeded `~/.xiaoai-broadcast/mi_token.json` (0600) authenticates via
 passToken cookie. If Xiaomi revokes it someday, repeat the three steps.
 
-**Non-MFA accounts** — plain env creds also work:
-`MI_USER`/`MI_PASS` or `XIAOMI_USER`/`XIAOMI_PASSWORD` (rootgrove Keychain loader).
+**Non-MFA accounts** — plain env creds also work, but ONLY when no
+passToken file exists (passToken-first): `MI_USER`/`MI_PASS` or
+`XIAOMI_USER`/`XIAOMI_PASSWORD`.
 
 Then:
 

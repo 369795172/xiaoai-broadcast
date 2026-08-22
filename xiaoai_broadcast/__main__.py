@@ -38,6 +38,26 @@ def main(argv: list[str] | None = None) -> int:
         "login-cookie",
         help="seed auth from browser cookies (MFA-safe, interactive)",
     )
+    p_browser = sub.add_parser(
+        "login-browser",
+        help="harvest passToken from a saved Playwright browser profile",
+    )
+    p_browser.add_argument("--headed", action="store_true", help="visible window, manual login")
+    p_browser.add_argument("--account", help="phone/email for the SMS login flow")
+    p_browser.add_argument(
+        "--sms", action="store_true", help="request SMS code; read it from the code file"
+    )
+    p_browser.add_argument(
+        "--password",
+        action="store_true",
+        help="password login (MI_PASS/XIAOMI_PASSWORD env); verification via code file",
+    )
+    p_browser.add_argument(
+        "--timeout", type=int, default=300, help="seconds to wait for manual login or code"
+    )
+    p_browser.add_argument(
+        "--wait-login", type=int, default=15, help="seconds to probe an existing session"
+    )
 
     p_vol = sub.add_parser("volume", help="get or set volume")
     p_vol.add_argument("--did", required=True)
@@ -71,6 +91,22 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "serve":
         server.serve(args.dir, args.port)
         return 0
+
+    if args.cmd == "login-browser":
+        from . import browser_login
+
+        return browser_login.main(
+            [
+                *([] if not args.headed else ["--headed"]),
+                *(["--account", args.account] if args.account else []),
+                *(["--sms"] if args.sms else []),
+                *(["--password"] if args.password else []),
+                "--timeout",
+                str(args.timeout),
+                "--wait-login",
+                str(args.wait_login),
+            ]
+        )
 
     if args.cmd == "login-cookie":
         token = client.bootstrap_cookie_login()

@@ -9,9 +9,9 @@ TOOL_HOME="$HOME/.xiaoai-broadcast"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VENV_PYTHON="$TOOL_HOME/venv/bin/python"
 
-# Credentials: prefer rootgrove Keychain loader, fall back to local env file.
-ROOTGROVE_ENV="$HOME/CursorWorks/rootgrove/tools/secrets/source_env.sh"
-[[ -f "$ROOTGROVE_ENV" ]] && source "$ROOTGROVE_ENV"
+# Credentials come ONLY from ~/.xiaoai-broadcast/env (passToken auth lives in
+# ~/.xiaoai-broadcast/mi_token.json). Never source rootgrove source_env.sh
+# here: its XIAOMI_USER/PASSWORD would override the token account.
 [[ -f "$TOOL_HOME/env" ]] && source "$TOOL_HOME/env"
 export XIAOAI_DID XIAOAI_BASE_URL XIAOAI_MORNING_VOLUME
 
@@ -40,5 +40,11 @@ else
   rm -f "$VOLUME_FILE"
   echo "warn: could not read current volume; restore will be skipped"
 fi
-"$VENV_PYTHON" -m xiaoai_broadcast play \
-  --did "$XIAOAI_DID" --file morning_brief.mp3 --volume "$VOLUME" --retry 3
+if ! "$VENV_PYTHON" -m xiaoai_broadcast play \
+  --did "$XIAOAI_DID" --file morning_brief.mp3 --volume "$VOLUME" --retry 3; then
+  echo "play failed; passToken may need refresh (login-browser)"
+  if [[ -n "${XIAOAI_FAIL_HOOK:-}" && -x "$XIAOAI_FAIL_HOOK" ]]; then
+    "$XIAOAI_FAIL_HOOK" "morning_play play failed $(date '+%F %T')" || true
+  fi
+  exit 1
+fi
