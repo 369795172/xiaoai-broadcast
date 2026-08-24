@@ -82,6 +82,17 @@ def main(argv: list[str] | None = None) -> int:
     p_status = sub.add_parser("status", help="playback status")
     p_status.add_argument("--did", required=True)
 
+    p_deliver = sub.add_parser(
+        "deliver",
+        help="morning brief: MP3 URL when reachable, cloud TTS fallback",
+    )
+    p_deliver.add_argument("--did", required=True)
+    p_deliver.add_argument("--volume", type=int, default=50)
+    p_deliver.add_argument("--txt", help="script text for the TTS fallback")
+    p_deliver.add_argument("--mp3", default="morning_brief.mp3")
+    p_deliver.add_argument("--port", type=int, default=8091)
+    p_deliver.add_argument("--dry-run", action="store_true")
+
     p_serve = sub.add_parser("serve", help="static audio server (LAN)")
     p_serve.add_argument("--port", type=int, default=server.DEFAULT_PORT)
     p_serve.add_argument("--dir", type=Path, default=_music_dir())
@@ -122,6 +133,25 @@ def main(argv: list[str] | None = None) -> int:
                 f"did={r['did']} device_id={r['device_id']}"
             )
         return 0
+
+    if args.cmd == "deliver":
+        from . import deliver
+
+        extra = ["--txt", args.txt] if args.txt else []
+        return deliver.main(
+            [
+                "--did",
+                args.did,
+                "--volume",
+                str(args.volume),
+                "--mp3",
+                args.mp3,
+                "--port",
+                str(args.port),
+                *extra,
+                *(["--dry-run"] if args.dry_run else []),
+            ]
+        )
 
     if args.cmd == "devices":
         rows = client.list_devices()

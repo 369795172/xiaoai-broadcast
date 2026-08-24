@@ -29,12 +29,18 @@ import os
 import stat
 import string
 import secrets
+import types
 from pathlib import Path
 from typing import Any
 
 import aiohttp
 from miservice import MiAccount, MiNAService
 from miservice.miaccount import MiTokenStore
+
+_FALLBACK_UA = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+)
 
 _HOME = Path.home() / ".xiaoai-broadcast"
 _TOKEN_PATH = _HOME / "mi_token.json"
@@ -70,6 +76,61 @@ class _KeepTokenStore(MiTokenStore):
     def save_token(self, token=None):
         if token:
             super().save_token(token)
+
+
+class _StableAccount(MiAccount):
+    """MiAccount with a pinned UA and passToken-only login.
+
+    Fixes two stock-miservice failure modes observed 2026-08-22..23 (the
+    morning brief died overnight twice with 70016):
+
+    1. fake_useragent re-randomizes the User-Agent on every request while
+       deviceId stays fixed. Rotating UA + stable device id reads like
+       session theft to Xiaomi risk control and gets the passToken
+       revoked within a day. We pin one UA (harvested from the login
+       browser when available, else a fixed Chrome UA).
+    2. On serviceToken expiry mi_request() nulls self.token BEFORE
+       re-login, so stock login() retries with a random deviceId and an
+       EMPTY passToken, then falls back to password auth -- we have no
+       password, so it sends md5(""), feeds the risk engine captcha
+       events (70016 -> 87001) and never retries the on-disk passToken.
+       Our login() reloads mi_token.json (picking up concurrent
+       re-harvests), uses its identity, and never attempts password auth.
+
+    Xiaomi rotates the passToken on every successful serviceLogin; the
+    rotated value is persisted via the token store like stock behavior.
+    """
+
+    def __init__(self, session: Any, user: str) -> None:
+        super().__init__(session, user, "", _KeepTokenStore(str(_TOKEN_PATH)))
+        token = _load_token()
+        if token.get("passToken") and token.get("userId"):
+            self.token = token
+        self.ua = types.SimpleNamespace(
+            random=str(token.get("userAgent") or _FALLBACK_UA)
+        )
+
+    async def login(self, sid):
+        disk = _load_token()
+        if disk.get("passToken") and disk.get("userId"):
+            self.token = disk
+        if not (self.token or {}).get("passToken"):
+            raise Exception(
+                "no passToken available; re-seed via "
+                "`xiaoai-broadcast login-browser --account <phone> --sms`"
+            )
+        resp = await self._serviceLogin(f"serviceLogin?sid={sid}&_json=true")
+        if resp["code"] != 0:
+            raise Exception(resp)
+        self.token["userId"] = resp["userId"]
+        self.token["passToken"] = resp["passToken"]
+        service_token = await self._securityTokenService(
+            resp["location"], resp["nonce"], resp["ssecurity"]
+        )
+        self.token[sid] = (resp["ssecurity"], service_token)
+        if self.token_store:
+            self.token_store.save_token(self.token)
+        return True
 
 
 def bootstrap_cookie_login() -> dict[str, Any]:
@@ -112,8 +173,7 @@ async def _call(command: str, args: tuple[Any, ...], retry: int) -> Any:
         )
     session = aiohttp.ClientSession()
     try:
-        store = _KeepTokenStore(str(_TOKEN_PATH))
-        account = MiAccount(session, user, password, store)
+        account = _StableAccount(session, user)
         service = MiNAService(account)
         last_error: Exception | None = None
         for attempt in range(max(1, retry)):

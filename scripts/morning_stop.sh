@@ -12,6 +12,14 @@ export XIAOAI_DID XIAOAI_BASE_URL
 
 : "${XIAOAI_DID:?XIAOAI_DID not set}"
 
+# Daily-triggered by launchd; the play brief itself is weekdays-only, so
+# weekends must not stop playback or touch volume here.
+dow="$(date +%u)"
+if [[ "$dow" -gt 5 ]]; then
+  echo "$(date '+%F %T') weekend, skip"
+  exit 0
+fi
+
 echo "=== $(date '+%F %T') morning stop (did=$XIAOAI_DID) ==="
 "$VENV_PYTHON" -m xiaoai_broadcast stop --did "$XIAOAI_DID"
 

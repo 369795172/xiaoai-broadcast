@@ -16,10 +16,11 @@ VENV_PYTHON="$TOOL_HOME/venv/bin/python"
 export XIAOAI_DID XIAOAI_BASE_URL XIAOAI_MORNING_VOLUME
 
 : "${XIAOAI_DID:?XIAOAI_DID not set (put it in $TOOL_HOME/env)}"
-: "${XIAOAI_BASE_URL:?XIAOAI_BASE_URL not set (e.g. http://192.168.1.124:8091)}"
-# Auth: passToken file (login-cookie) OR env creds -- at least one must exist.
-if [[ ! -f "$TOOL_HOME/mi_token.json" ]] && [[ -z "${XIAOAI_USER:-}${MI_USER:-}" ]]; then
-  echo "no auth: run 'xiaoai-broadcast login-cookie' (or set XIAOMI_USER/XIAOMI_PASSWORD)" >&2
+# XIAOAI_BASE_URL is optional now: deliver.py auto-detects the LAN IP and
+# falls back to cloud TTS chunks when the speaker cannot reach the serve.
+# Auth: passToken file required (login-browser/login-cookie seed it).
+if [[ ! -f "$TOOL_HOME/mi_token.json" ]]; then
+  echo "no auth: run 'xiaoai-broadcast login-browser' (or login-cookie)" >&2
   exit 1
 fi
 
@@ -40,11 +41,11 @@ else
   rm -f "$VOLUME_FILE"
   echo "warn: could not read current volume; restore will be skipped"
 fi
-if ! "$VENV_PYTHON" -m xiaoai_broadcast play \
-  --did "$XIAOAI_DID" --file morning_brief.mp3 --volume "$VOLUME" --retry 3; then
-  echo "play failed; passToken may need refresh (login-browser)"
+if ! "$VENV_PYTHON" -m xiaoai_broadcast.deliver \
+  --did "$XIAOAI_DID" --volume "$VOLUME"; then
+  echo "deliver failed (url+tts); passToken may need refresh (login-browser)"
   if [[ -n "${XIAOAI_FAIL_HOOK:-}" && -x "$XIAOAI_FAIL_HOOK" ]]; then
-    "$XIAOAI_FAIL_HOOK" "morning_play play failed $(date '+%F %T')" || true
+    "$XIAOAI_FAIL_HOOK" "morning_play deliver failed $(date '+%F %T')" || true
   fi
   exit 1
 fi

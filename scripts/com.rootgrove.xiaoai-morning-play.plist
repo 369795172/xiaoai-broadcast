@@ -10,13 +10,12 @@
         <string>__REPO_ROOT__/scripts/morning_play.sh</string>
     </array>
     <key>StartCalendarInterval</key>
-    <array>
-        <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>7</integer><key>Minute</key><integer>58</integer></dict>
-        <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>7</integer><key>Minute</key><integer>58</integer></dict>
-        <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>7</integer><key>Minute</key><integer>58</integer></dict>
-        <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>7</integer><key>Minute</key><integer>58</integer></dict>
-        <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>7</integer><key>Minute</key><integer>58</integer></dict>
-    </array>
+    <dict>
+        <key>Hour</key>
+        <integer>7</integer>
+        <key>Minute</key>
+        <integer>58</integer>
+    </dict>
     <key>StandardOutPath</key>
     <string>__HOME__/CursorWorks/rootgrove/logs/xiaoai_morning.log</string>
     <key>StandardErrorPath</key>

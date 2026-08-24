@@ -50,18 +50,51 @@ def _harvest(context: Any) -> dict[str, str] | None:
         if c["domain"].endswith("xiaomi.com")
     }
     if jar.get("userId") and jar.get("passToken"):
-        return {"userId": jar["userId"], "passToken": jar["passToken"]}
+        out = {"userId": jar["userId"], "passToken": jar["passToken"], "userAgent": ""}
+        for page in context.pages:
+            try:
+                out["userAgent"] = page.evaluate("navigator.userAgent")
+                break
+            except Exception:
+                continue
+        return out
     return None
 
 
-def _write_token(harvest: dict[str, str]) -> dict[str, str]:
+def _write_token(harvest: dict[str, str], force: bool = False) -> dict[str, str]:
+    """Persist a harvest; probe harvests never clobber a rotated passToken.
+
+    Xiaomi rotates the passToken on every successful serviceLogin (the
+    client persists the fresh value to mi_token.json), which instantly
+    invalidates the browser profile's older cookie. So a plain session
+    probe must NOT overwrite a differing on-disk passToken -- that
+    destroyed a live rotated token on 2026-08-23. Overwrites are reserved
+    for flows that actually performed a login in this browser
+    (--sms / --password / --headed manual), where the cookie is the
+    freshest credential in existence.
+    """
     old = _load_token()
+    same_account = old.get("userId") == harvest["userId"]
+    keep_disk = (
+        not force
+        and same_account
+        and old.get("passToken")
+        and old.get("passToken") != harvest["passToken"]
+    )
     token = {
         "deviceId": str(old.get("deviceId") or _new_device_id()),
         "userId": harvest["userId"],
-        "passToken": harvest["passToken"],
+        "passToken": str(old["passToken"]) if keep_disk else harvest["passToken"],
     }
+    ua = harvest.get("userAgent") or old.get("userAgent")
+    if ua:
+        token["userAgent"] = str(ua)
     _save_token(token)
+    if keep_disk:
+        print(
+            "probe harvest kept the on-disk passToken "
+            "(browser cookie is pre-rotation; use --sms/--headed to force)"
+        )
     return token
 
 
@@ -492,7 +525,9 @@ def main(argv: list[str] | None = None) -> int:
                     file=sys.stderr,
                 )
                 return 3
-            token = _write_token(harvest)
+            token = _write_token(
+                harvest, force=bool(args.sms or args.password or args.headed)
+            )
             masked = token["userId"][:3] + "***"
             print(f"harvested: userId={masked} -> mi_token.json (0600)")
             return 0
