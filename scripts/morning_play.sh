@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Weekday 08:00: set volume, then play morning_brief.mp3 on the room speaker.
+# Daily 08:00: set volume, then play morning_brief.mp3 on the room speaker.
 set -euo pipefail
 
 export TZ=Asia/Shanghai
@@ -24,9 +24,9 @@ if [[ ! -f "$TOOL_HOME/mi_token.json" ]]; then
   exit 1
 fi
 
-dow="$(date +%u)"
-if [[ "$dow" -gt 5 ]]; then
-  echo "$(date '+%F %T') weekend, skip"
+brief_date="$(date -r "$HOME/.xiaomusic/music/morning/morning_brief.mp3" +%F 2>/dev/null || echo none)"
+if [[ "$brief_date" != "$(date +%F)" ]]; then
+  echo "$(date '+%F %T') brief not from today ($brief_date), skip playback — no repeat"
   exit 0
 fi
 

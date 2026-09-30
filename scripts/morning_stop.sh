@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Weekday 08:12: stop the room speaker.
+# Daily 08:12: stop the room speaker.
 set -euo pipefail
 
 export TZ=Asia/Shanghai
@@ -12,11 +12,9 @@ export XIAOAI_DID XIAOAI_BASE_URL
 
 : "${XIAOAI_DID:?XIAOAI_DID not set}"
 
-# Daily-triggered by launchd; the play brief itself is weekdays-only, so
-# weekends must not stop playback or touch volume here.
-dow="$(date +%u)"
-if [[ "$dow" -gt 5 ]]; then
-  echo "$(date '+%F %T') weekend, skip"
+brief_date="$(date -r "$HOME/.xiaomusic/music/morning/morning_brief.mp3" +%F 2>/dev/null || echo none)"
+if [[ "$brief_date" != "$(date +%F)" ]]; then
+  echo "$(date '+%F %T') brief not from today ($brief_date), skip stop — no repeat"
   exit 0
 fi
 
