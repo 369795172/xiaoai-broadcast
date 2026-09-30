@@ -14,4 +14,4 @@ for agent in com.rootgrove.xiaoai-morning-play com.rootgrove.xiaoai-morning-stop
   launchctl unload "$LAUNCH_AGENTS/$agent.plist" 2>/dev/null || true
   launchctl load "$LAUNCH_AGENTS/$agent.plist"
 done
-echo "alarms armed: 07:58 play / 08:10 stop (weekdays)"
+echo "alarms armed: 08:00 play / 08:12 stop (weekdays)"

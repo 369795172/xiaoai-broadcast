@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Weekday 07:38: set volume, then play morning_brief.mp3 on the room speaker.
+# Weekday 08:00: set volume, then play morning_brief.mp3 on the room speaker.
 set -euo pipefail
 
 export TZ=Asia/Shanghai

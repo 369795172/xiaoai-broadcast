@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Weekday 07:50: stop the room speaker.
+# Weekday 08:12: stop the room speaker.
 set -euo pipefail
 
 export TZ=Asia/Shanghai

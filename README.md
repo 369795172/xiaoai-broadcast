@@ -6,17 +6,17 @@ Born as a replacement for a discontinued upstream ([hanxi/xiaomusic](https://git
 
 ## What it does
 
-- Morning brief: weekdays 07:58 set volume → play `morning_brief.mp3` → 08:10 stop
+- Morning brief: weekdays 08:00 set volume → play `morning_brief.mp3` → 08:12 stop
 - Ad-hoc: list devices, push any audio URL/file, short TTS, status
 
 ## Architecture
 
 ```
-launchd 07:15 (rootgrove aggregate.py)  →  music dir / morning_brief.mp3
+launchd 07:45 (rootgrove aggregate.py) →  music dir / morning_brief.mp3
                                               │
 launchd KeepAlive: xiaoai_broadcast.server ── serve :8091 (LAN, no-cache)
                                               │
-launchd 07:38: morning_play.sh → MiNA cloud API → speaker pulls the URL
+launchd 08:00: morning_play.sh → MiNA cloud API → speaker pulls the URL
 ```
 
 The speaker fetches the audio over LAN itself; nothing streams from the Mac after the push.
